@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OEI Landing Distance Calculator - Flaps 15</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'SF Pro Display', 'Segoe UI', -apple-system, sans-serif;
+    background: #0f1923; color: #e0e6ed; padding: 24px;
+    min-height: 100vh;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    text-align: center; margin-bottom: 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+  }
+  .header-text h1 {
+    font-size: 1.15em; font-weight: 700; color: #8ba4c4;
+    letter-spacing: 0.5px; margin-bottom: 2px;
+  }
+  .header-text .subtitle { font-size: 0.8em; color: #556b82; font-weight: 500; }
+  .ref-btn {
+    padding: 6px 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
+    background: rgba(255,255,255,0.05); cursor: pointer;
+    font-size: 0.72em; font-weight: 700; color: #7a9ab8;
+    transition: all 0.2s; font-family: inherit; letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .ref-btn:hover { background: rgba(255,255,255,0.1); color: #a0c4e0; border-color: #3a7aaa; }
+
+  .fixed-bar {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    background: rgba(255,255,255,0.04); border-radius: 8px;
+    padding: 8px 16px; margin-bottom: 22px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .fixed-bar span { font-size: 0.75em; color: #6b8299; white-space: nowrap; }
+  .fixed-bar strong { color: #93afc8; font-weight: 600; }
+
+  /* Parameter controls */
+  .params-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px 20px; margin-bottom: 24px;
+  }
+  .param-section.full-width { grid-column: 1 / -1; }
+  .param-label {
+    font-size: 0.68em; font-weight: 700; color: #5a7a96;
+    text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px;
+  }
+  .tab-group { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 7px 14px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+    background: rgba(255,255,255,0.03); cursor: pointer;
+    font-size: 0.82em; font-weight: 600; color: #7a90a5;
+    transition: all 0.2s; font-family: inherit;
+  }
+  .tab-btn:hover {
+    background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: #b0c4d8;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, #1e6ca4, #1a5a8a);
+    border-color: #2a80bc; color: #fff;
+    box-shadow: 0 2px 8px rgba(30,108,164,0.3);
+  }
+
+  /* Results table */
+  .table-wrap {
+    border-radius: 10px; overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .results-table {
+    width: 100%; border-collapse: collapse; background: #151f2b;
+  }
+  .results-table th {
+    background: #1a2a3a; color: #6d8da8; padding: 10px 6px;
+    font-size: 0.68em; text-align: right; white-space: nowrap;
+    text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700;
+    border-bottom: 2px solid rgba(255,255,255,0.06);
+  }
+  .results-table th:first-child { text-align: center; width: 70px; }
+  .results-table td {
+    padding: 11px 6px; text-align: right; font-size: 0.82em;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-variant-numeric: tabular-nums; font-weight: 500;
+  }
+  .results-table tr:last-child td { border-bottom: none; }
+  .results-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+  /* RWYCC badge */
+  .rwycc-cell { text-align: center !important; }
+  .rwycc-badge {
+    display: inline-block; width: 36px; height: 36px; line-height: 36px;
+    border-radius: 8px; font-size: 1.1em; font-weight: 800;
+  }
+  .rwycc-6 { background: #1a5c2a; color: #5fe07a; }
+  .rwycc-5 { background: #2a5c1a; color: #8ee05f; }
+  .rwycc-4 { background: #5c5a1a; color: #e0d85f; }
+  .rwycc-3 { background: #5c3e1a; color: #e0a55f; }
+  .rwycc-2 { background: #5c2a1a; color: #e07a5f; }
+  .rwycc-1 { background: #5c1a1a; color: #e05f5f; }
+
+  .col-ref { color: #7eb3d8; font-weight: 700; }
+  .col-adj { color: #556b7a; }
+  .col-adj.positive { color: #d98a5c; }
+  .col-adj.zero { color: #3a4a55; }
+
+  /* TOTAL column - prominent */
+  .results-table th.th-total { color: #f0c878; font-size: 0.78em; }
+  .total-cell {
+    position: relative; padding-left: 14px !important; padding-right: 10px !important;
+  }
+  .total-cell::before {
+    content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+    width: 3px; border-radius: 2px;
+  }
+  .total-val {
+    display: inline-block; font-weight: 800; font-size: 1.15em;
+    letter-spacing: 0.3px;
+    font-variant-numeric: tabular-nums;
+    min-width: 60px; text-align: right;
+  }
+  .total-unit {
+    font-size: 0.65em; font-weight: 500; opacity: 0.5; margin-left: 2px;
+  }
+  /* Color code total by severity */
+  tr[data-rwycc="6"] .total-val { color: #5fe07a; }
+  tr[data-rwycc="6"] .total-cell::before { background: #5fe07a; }
+  tr[data-rwycc="5"] .total-val { color: #8ee05f; }
+  tr[data-rwycc="5"] .total-cell::before { background: #8ee05f; }
+  tr[data-rwycc="4"] .total-val { color: #e0d85f; }
+  tr[data-rwycc="4"] .total-cell::before { background: #e0d85f; }
+  tr[data-rwycc="3"] .total-val { color: #e0a55f; }
+  tr[data-rwycc="3"] .total-cell::before { background: #e0a55f; }
+  tr[data-rwycc="2"] .total-val { color: #e07a5f; }
+  tr[data-rwycc="2"] .total-cell::before { background: #e07a5f; }
+  tr[data-rwycc="1"] .total-val { color: #e05f5f; }
+  tr[data-rwycc="1"] .total-cell::before { background: #e05f5f; }
+
+  /* Severity background */
+  .results-table tr[data-rwycc="2"] td { background: rgba(200,80,60,0.04); }
+  .results-table tr[data-rwycc="1"] td { background: rgba(200,80,60,0.07); }
+  .results-table tr[data-rwycc="2"]:hover td { background: rgba(200,80,60,0.08); }
+  .results-table tr[data-rwycc="1"]:hover td { background: rgba(200,80,60,0.11); }
+
+  /* Conditions bar */
+  .conditions-bar {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    margin-top: 16px; padding: 10px 16px;
+    background: rgba(255,255,255,0.03); border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .cond-chip {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,0.05); border-radius: 5px;
+    padding: 4px 10px; font-size: 0.74em;
+  }
+  .cond-chip .cl { color: #5a7a96; }
+  .cond-chip .cv { color: #a0c0dc; font-weight: 700; }
+
+  .air-dist-note {
+    text-align: center; font-size: 0.72em; color: #4a6070;
+    margin-top: 10px; font-style: italic;
+  }
+  .ab-note {
+    display: inline-block; font-size: 0.62em; font-weight: 600;
+    color: #c49a6b; background: rgba(196,154,107,0.12);
+    border-radius: 4px; padding: 1px 6px; margin-left: 6px;
+    vertical-align: middle; letter-spacing: 0.3px;
+  }
+  .footer {
+    text-align: center; font-size: 0.68em; color: #3a4a55;
+    margin-top: 16px; letter-spacing: 0.3px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 1000;
+    justify-content: center; align-items: center;
+    cursor: zoom-out; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-content {
+    position: relative; max-width: 92vw; max-height: 92vh;
+    border-radius: 10px; overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .modal-content img {
+    display: block; max-width: 92vw; max-height: 92vh;
+    object-fit: contain; background: #fff;
+  }
+  .modal-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; font-size: 1.2em; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .modal-close:hover { background: rgba(0,0,0,0.8); }
+  .modal-title {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.7); color: #aaa;
+    padding: 8px 16px; font-size: 0.72em; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="header-text">
+      <h1>PI.12.1.16 One Engine Inoperative Landing (Flaps 15)</h1>
+      <div class="subtitle">VREF15 - Landing Distance Calculator</div>
+    </div>
+    <button class="ref-btn" id="open-ref">REF CHART</button>
+  </div>
+
+  <div class="fixed-bar">
+    <span><strong>ALT</strong> 1,000 ft (STD)</span>
+    <span><strong>SLOPE</strong> 1% Downslope</span>
+    <span><strong>APP SPD</strong> VREF + 10 kt</span>
+  </div>
+
+  <div class="params-grid">
+    <div class="param-section full-width">
+      <div class="param-label">Braking Configuration</div>
+      <div class="tab-group" id="brake-tabs">
+        <button class="tab-btn" data-value="maxmanual">MAX MANUAL</button>
+        <button class="tab-btn active" data-value="abmax">AUTOBRAKE MAX</button>
+        <button class="tab-btn" data-value="ab2">AUTOBRAKE 2</button>
+      </div>
+    </div>
+    <div class="param-section">
+      <div class="param-label">Weight</div>
+      <div class="tab-group" id="wt-tabs">
+        <button class="tab-btn" data-value="130000">130,000 lbs</button>
+        <button class="tab-btn" data-value="140000">140,000 lbs</button>
+        <button class="tab-btn active" data-value="146600">146,600 lbs</button>
+      </div>
+    </div>
+    <div class="param-section">
+      <div class="param-label">Wind</div>
+      <div class="tab-group" id="wind-tabs">
+        <button class="tab-btn" data-value="0">CALM</button>
+        <button class="tab-btn" data-value="5">TAIL 5</button>
+        <button class="tab-btn" data-value="10">TAIL 10</button>
+        <button class="tab-btn active" data-value="15">TAIL 15</button>
+      </div>
+    </div>
+    <div class="param-section">
+      <div class="param-label">Temperature</div>
+      <div class="tab-group" id="temp-tabs">
+        <button class="tab-btn" data-value="10">10°C</button>
+        <button class="tab-btn" data-value="20">20°C</button>
+        <button class="tab-btn" data-value="30">30°C</button>
+        <button class="tab-btn active" data-value="40">40°C</button>
+      </div>
+    </div>
+    <div class="param-section">
+      <div class="param-label">Reverse Thrust</div>
+      <div class="tab-group" id="rev-tabs">
+        <button class="tab-btn active" data-value="norev">NO REV</button>
+        <button class="tab-btn" data-value="onerev">ONE REV</button>
+      </div>
+    </div>
+    <div class="param-section">
+      <div class="param-label">Air Distance</div>
+      <div class="tab-group" id="airdist-tabs">
+        <button class="tab-btn active" data-value="1500">1,500 ft</button>
+        <button class="tab-btn" data-value="0">NONE</button>
+        <button class="tab-btn" data-value="3000">3,000 ft</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>RWYCC</th>
+          <th>REF</th>
+          <th>WT</th>
+          <th>ALT</th>
+          <th>WIND</th>
+          <th>SLOPE</th>
+          <th>TEMP</th>
+          <th>SPD</th>
+          <th>REV</th>
+          <th>AIR</th>
+          <th class="th-total">TOTAL</th>
+        </tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
+  </div>
+
+  <div class="air-dist-note" id="ab-note-text"></div>
+  <div class="air-dist-note" id="airdist-note"></div>
+  <div class="conditions-bar" id="conditions-display"></div>
+  <p class="footer">JAL B737 AOM Part 3-02E &middot; Rev. 21.3.0 &middot; 04-Nov-2021</p>
+</div>
+
+<!-- Reference Chart Modal -->
+<div class="modal-overlay" id="ref-modal">
+  <div class="modal-content">
+    <button class="modal-close" id="close-modal">&times;</button>
+    <img src="oei_ref_chart.png" alt="PI.12.1.16 Reference Chart">
+    <div class="modal-title">PI.12.1.16 One Engine Inoperative Landing (Flaps 15) - Original Reference</div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  maxmanual: {
+    6: { ref: 3700, wt: [230,-170], alt: [70,100],  wind: [-120,400],  slope: [40,-40],   temp: [70,-70],   spd: 110, oneRev: 0, noRev: 70 },
+    5: { ref: 4970, wt: [230,-230], alt: [120,160], wind: [-200,680],  slope: [110,-100], temp: [110,-120], spd: 160, oneRev: 0, noRev: 270 },
+    4: { ref: 5950, wt: [300,-310], alt: [160,210], wind: [-270,930],  slope: [220,-180], temp: [150,-150], spd: 190, oneRev: 0, noRev: 580 },
+    3: { ref: 6930, wt: [370,-380], alt: [190,260], wind: [-330,1170], slope: [330,-260], temp: [180,-180], spd: 220, oneRev: 0, noRev: 880 },
+    2: { ref: 8140, wt: [470,-470], alt: [250,340], wind: [-430,1550], slope: [610,-410], temp: [220,-230], spd: 250, oneRev: 0, noRev: 1540 },
+    1: { ref: 9350, wt: [560,-560], alt: [300,410], wind: [-520,1930], slope: [880,-560], temp: [260,-270], spd: 280, oneRev: 0, noRev: 2200 },
+  },
+  abmax: {
+    6: { ref: 4640, wt: [200,-200], alt: [100,130], wind: [-150,500],  slope: [10,0],     temp: [100,-100], spd: 190, oneRev: 0, noRev: 10 },
+    5: { ref: 5340, wt: [240,-250], alt: [130,170], wind: [-210,710],  slope: [110,-90],  temp: [120,-120], spd: 190, oneRev: 0, noRev: 310 },
+    4: { ref: 6230, wt: [320,-320], alt: [160,210], wind: [-270,960],  slope: [210,-170], temp: [160,-160], spd: 230, oneRev: 0, noRev: 610 },
+    3: { ref: 7110, wt: [390,-390], alt: [200,270], wind: [-330,1190], slope: [310,-240], temp: [190,-190], spd: 260, oneRev: 0, noRev: 900 },
+    2: { ref: 8240, wt: [480,-480], alt: [250,340], wind: [-430,1560], slope: [900,-380], temp: [230,-240], spd: 310, oneRev: 0, noRev: 1520 },
+    1: { ref: 9370, wt: [570,-560], alt: [300,410], wind: [-520,1930], slope: [890,-540], temp: [270,-270], spd: 310, oneRev: 0, noRev: 2210 },
+  },
+  ab2: {
+    6: { ref: 8200, wt: [440,-460], alt: [230,310], wind: [-350,1160], slope: [30,-80],   temp: [230,-230], spd: 380, oneRev: 0, noRev: 10 },
+    5: { ref: 8200, wt: [440,-460], alt: [230,310], wind: [-350,1160], slope: [30,-80],   temp: [230,-230], spd: 380, oneRev: 0, noRev: 10 },
+    4: { ref: 8320, wt: [450,-470], alt: [240,320], wind: [-370,1250], slope: [110,-120], temp: [240,-240], spd: 380, oneRev: 0, noRev: 180 },
+    3: { ref: 7300, wt: [390,-400], alt: [200,280], wind: [-340,1210], slope: [270,-200], temp: [190,-200], spd: 310, oneRev: 0, noRev: 800 },
+    2: { ref: 8390, wt: [480,-490], alt: [250,350], wind: [-430,1580], slope: [570,-380], temp: [230,-240], spd: 310, oneRev: 0, noRev: 1520 },
+    1: { ref: 9480, wt: [570,-570], alt: [300,410], wind: [-520,1940], slope: [860,-560], temp: [270,-280], spd: 300, oneRev: 0, noRev: 2230 },
+  },
+};
+
+const BRAKE_LABELS = { maxmanual: 'MAX MANUAL', abmax: 'AUTOBRAKE MAX', ab2: 'AUTOBRAKE 2/3' };
+const ALTITUDE = 1000, SLOPE_DOWN_PCT = 1, VREF_ADD = 10, REF_WEIGHT = 145000;
+const ISA_TEMP = 15 - 2 * (ALTITUDE / 1000);
+const DEFAULT_AIR_DIST = 1500;
+
+let selected = { brake: 'abmax', wt: 146600, wind: 15, temp: 40, rev: 'norev', airdist: 1500 };
+
+function calculate() {
+  const tbody = document.getElementById('results-body');
+  tbody.innerHTML = '';
+  const brakeData = DATA[selected.brake];
+  const wtDelta = selected.wt - REF_WEIGHT;
+  const altFactor = ALTITUDE / 1000;
+  const windFactor = selected.wind / 10;
+  const tempDev = selected.temp - ISA_TEMP;
+  const spdFactor = VREF_ADD / 5;
+  const airDistAdj = selected.airdist - DEFAULT_AIR_DIST;
+
+  for (const rwycc of [6, 5, 4, 3, 2, 1]) {
+    const d = brakeData[rwycc];
+    const wtAdj = Math.round((wtDelta >= 0 ? d.wt[0] : d.wt[1]) * Math.abs(wtDelta / 10000));
+    const altAdj = Math.round(d.alt[0] * altFactor);
+    const windAdj = selected.wind === 0 ? 0 : Math.round(d.wind[1] * windFactor);
+    const slopeAdj = Math.round(d.slope[0] * SLOPE_DOWN_PCT);
+    const tempAdj = Math.round((tempDev >= 0 ? d.temp[0] : d.temp[1]) * Math.abs(tempDev / 10));
+    const spdAdj = Math.round(d.spd * spdFactor);
+    const revAdj = selected.rev === 'norev' ? d.noRev : d.oneRev;
+    const total = d.ref + wtAdj + altAdj + windAdj + slopeAdj + tempAdj + spdAdj + revAdj + airDistAdj;
+
+    const tr = document.createElement('tr');
+    tr.dataset.rwycc = rwycc;
+    tr.innerHTML = `
+      <td class="rwycc-cell"><span class="rwycc-badge rwycc-${rwycc}">${rwycc}</span>${(selected.brake === 'ab2' && rwycc <= 3) ? '<span class="ab-note">AB3</span>' : ''}</td>
+      <td class="col-ref">${d.ref.toLocaleString()}</td>
+      ${adjCell(wtAdj)}${adjCell(altAdj)}${adjCell(windAdj)}${adjCell(slopeAdj)}${adjCell(tempAdj)}${adjCell(spdAdj)}${adjCell(revAdj)}${adjCell(airDistAdj)}
+      <td class="total-cell"><span class="total-val">${total.toLocaleString()}</span><span class="total-unit">ft</span></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  const condDiv = document.getElementById('conditions-display');
+  condDiv.innerHTML = [
+    chip('BRAKE', BRAKE_LABELS[selected.brake]),
+    chip('WT', selected.wt.toLocaleString() + ' lbs'),
+    chip('WIND', selected.wind === 0 ? 'CALM' : 'TAIL ' + selected.wind + ' kt'),
+    chip('TEMP', selected.temp + '\u00B0C (ISA' + (tempDev >= 0 ? '+' : '') + tempDev.toFixed(0) + ')'),
+    chip('REV', selected.rev === 'norev' ? 'NO REV' : 'ONE REV'),
+    chip('AIR', selected.airdist.toLocaleString() + ' ft'),
+  ].join('');
+
+  const abNoteDiv = document.getElementById('ab-note-text');
+  if (selected.brake === 'ab2') {
+    abNoteDiv.textContent = 'RWYCC 3 / 2 / 1 uses AUTOBRAKE 3 data (per AOM).';
+    abNoteDiv.style.color = '#c49a6b';
+  } else {
+    abNoteDiv.textContent = '';
+  }
+
+  const noteDiv = document.getElementById('airdist-note');
+  if (selected.airdist !== DEFAULT_AIR_DIST) {
+    noteDiv.textContent = 'REF DIST includes 1,500 ft air distance. Adjusted by ' + (airDistAdj >= 0 ? '+' : '') + airDistAdj.toLocaleString() + ' ft for ' + selected.airdist.toLocaleString() + ' ft.';
+  } else {
+    noteDiv.textContent = 'REF DIST includes 1,500 ft default air distance.';
+  }
+}
+
+function chip(label, value) {
+  return '<div class="cond-chip"><span class="cl">' + label + '</span><span class="cv">' + value + '</span></div>';
+}
+
+function adjCell(val) {
+  const cls = val === 0 ? 'col-adj zero' : (val > 0 ? 'col-adj positive' : 'col-adj');
+  const sign = val > 0 ? '+' : '';
+  return '<td class="' + cls + '">' + sign + val.toLocaleString() + '</td>';
+}
+
+function setupTabs(containerId, key, parseAs) {
+  document.getElementById(containerId).addEventListener('click', function(e) {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    btn.parentElement.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    selected[key] = parseAs === 'string' ? btn.dataset.value : Number(btn.dataset.value);
+    calculate();
+  });
+}
+
+setupTabs('brake-tabs', 'brake', 'string');
+setupTabs('wt-tabs', 'wt', 'number');
+setupTabs('wind-tabs', 'wind', 'number');
+setupTabs('temp-tabs', 'temp', 'number');
+setupTabs('rev-tabs', 'rev', 'string');
+setupTabs('airdist-tabs', 'airdist', 'number');
+
+// Modal
+const modal = document.getElementById('ref-modal');
+document.getElementById('open-ref').addEventListener('click', function() { modal.classList.add('open'); });
+document.getElementById('close-modal').addEventListener('click', function(e) { e.stopPropagation(); modal.classList.remove('open'); });
+modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('open'); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') modal.classList.remove('open'); });
+
+calculate();
+</script>
+</body>
+</html>
